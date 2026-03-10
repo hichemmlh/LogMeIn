@@ -1,0 +1,29 @@
+services:
+  backend:
+    image: hichemmlh/logmein-backend:latest
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=logs_db
+      - DB_USER=logs_user
+      - DB_PASSWORD=logs_password
+    depends_on:
+      - postgres
+
+  frontend:
+    image: hichemmlh/logmein-frontend:latest
+    ports:
+      - "80:80"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: logs_user
+      POSTGRES_PASSWORD: logs_password
+      POSTGRES_DB: logs_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

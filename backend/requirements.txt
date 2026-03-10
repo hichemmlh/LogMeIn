@@ -1,3 +1,4 @@
-Flask
-Flask-CORS
+flask
+flask-cors
 psycopg2-binary
+pytest

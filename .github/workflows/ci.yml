@@ -1,29 +1,47 @@
-name: LogMeIn Deployment
+name: LogMeIn Full CI/CD
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  deploy:
+  test-and-security:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Login Docker
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-
-      - name: Build and Push
+      
+      - name: 1. Setup & Install
         run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: 2. Automated Tests (Pytest)
+        run: |
+          cd backend
+          python -m pytest test_api.py
+
+      - name: 3. Vulnerability Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'table'
+          exit-code: '0'
+
+  deploy:
+    needs: test-and-security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: 4. Build & Push to Docker Hub
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_TOKEN }}
           docker build -t hichemmlh/logmein-backend:latest ./backend
           docker build -t hichemmlh/logmein-frontend:latest ./frontend
           docker push hichemmlh/logmein-backend:latest
           docker push hichemmlh/logmein-frontend:latest
 
-      - name: Deploy to AWS
+      - name: 5. Remote Deploy to AWS
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}

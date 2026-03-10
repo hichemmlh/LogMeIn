@@ -7,7 +7,10 @@ services:
       POSTGRES_PASSWORD: logs_password
       POSTGRES_DB: logs_db
     networks:
-      - app-net
+      - logmein-net
+    deploy:
+      placement:
+        constraints: [node.role == manager]
 
   backend:
     image: hichemmlh/logmein-backend:latest
@@ -15,18 +18,23 @@ services:
       - "5000:5000"
     environment:
       DB_HOST: db
-    depends_on:
-      - db
     networks:
-      - app-net
+      - logmein-net
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
 
   frontend:
     image: hichemmlh/logmein-frontend:latest
     ports:
       - "80:80"
     networks:
-      - app-net
+      - logmein-net
+    deploy:
+      replicas: 2
 
 networks:
-  app-net:
+  logmein-net:
     driver: overlay

@@ -3,9 +3,8 @@ const API_BASE_URL = `http://${window.location.hostname}:5000`;
 async function loadDashboard() {
     try {
         const res = await fetch(`${API_BASE_URL}/stats`);
-        if (!res.ok) throw new Error();
         const stats = await res.json();
-        document.getElementById("total-logs").textContent = stats.total_logs || 0;
+        document.getElementById("total-logs").textContent = stats.total_logs;
     } catch (e) {
         console.error("Erreur API", e);
     }
@@ -21,4 +20,4 @@ document.getElementById("add-test-btn").addEventListener("click", async () => {
 });
 
 loadDashboard();
-setInterval(loadDashboard, 30000);
+setInterval(loadDashboard, 10000);

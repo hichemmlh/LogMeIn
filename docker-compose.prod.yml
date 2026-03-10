@@ -22,9 +22,8 @@ services:
       - logmein-net
     deploy:
       replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
+      restart_policy:
+        condition: on-failure
 
   frontend:
     image: hichemmlh/logmein-frontend:latest

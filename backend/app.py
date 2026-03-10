@@ -1,9 +1,7 @@
-import os
+import os, psycopg2, time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import psycopg2
 from psycopg2.extras import RealDictCursor
-from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -12,16 +10,21 @@ DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'db'),
     'database': os.getenv('DB_NAME', 'logs_db'),
     'user': os.getenv('DB_USER', 'logs_user'),
-    'password': os.getenv('DB_PASSWORD', 'logs_password'),
-    'port': os.getenv('DB_PORT', 5432)
+    'password': os.getenv('DB_PASSWORD', 'logs_password')
 }
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
+    while True:
+        try:
+            conn = psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
+            return conn
+        except Exception as e:
+            print(f"Connexion DB échouée, nouvel essai dans 2s... {e}")
+            time.sleep(2)
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "ok", "database": "connected", "timestamp": datetime.now().isoformat()})
+    return jsonify({"status": "ok"})
 
 @app.route('/logs', methods=['GET'])
 def get_logs():
@@ -49,8 +52,11 @@ def add_log():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('INSERT INTO logs (level, message, service) VALUES (%s, %s, %s)',
-                (data.get('level', 'info'), data.get('message', ''), data.get('service', 'unknown')))
+                (data.get('level', 'info'), data.get('message', ''), data.get('service', 'web')))
     conn.commit()
     cur.close()
     conn.close()
     return jsonify({"success": True}), 201
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)

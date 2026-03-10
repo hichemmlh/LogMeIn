@@ -16,15 +16,12 @@ DB_CONFIG = {
 def get_db_connection():
     while True:
         try:
-            conn = psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
-            return conn
-        except Exception as e:
-            print(f"Connexion DB échouée, nouvel essai dans 2s... {e}")
+            return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
+        except:
             time.sleep(2)
 
 @app.route('/health')
-def health():
-    return jsonify({"status": "ok"})
+def health(): return jsonify({"status": "ok"})
 
 @app.route('/logs', methods=['GET'])
 def get_logs():
@@ -32,8 +29,7 @@ def get_logs():
     cur = conn.cursor()
     cur.execute('SELECT * FROM logs ORDER BY timestamp DESC LIMIT 100')
     logs = cur.fetchall()
-    cur.close()
-    conn.close()
+    cur.close() ; conn.close()
     return jsonify({"logs": logs})
 
 @app.route('/stats', methods=['GET'])
@@ -42,9 +38,18 @@ def get_stats():
     cur = conn.cursor()
     cur.execute('SELECT COUNT(*) as total FROM logs')
     total = cur.fetchone()['total']
-    cur.close()
-    conn.close()
-    return jsonify({"total_logs": total, "levels": {"error": 0, "warning": 0}})
+    cur.execute("SELECT COUNT(*) as errors FROM logs WHERE level='error'")
+    errors = cur.fetchone()['errors']
+    cur.execute("SELECT COUNT(*) as warnings FROM logs WHERE level='warning'")
+    warnings = cur.fetchone()['warnings']
+    cur.execute("SELECT MAX(timestamp) as last FROM logs")
+    last = cur.fetchone()['last']
+    cur.close() ; conn.close()
+    return jsonify({
+        "total_logs": total, 
+        "levels": {"error": errors, "warning": warnings},
+        "last_log": last.isoformat() if last else None
+    })
 
 @app.route('/logs', methods=['POST'])
 def add_log():
@@ -54,8 +59,7 @@ def add_log():
     cur.execute('INSERT INTO logs (level, message, service) VALUES (%s, %s, %s)',
                 (data.get('level', 'info'), data.get('message', ''), data.get('service', 'web')))
     conn.commit()
-    cur.close()
-    conn.close()
+    cur.close() ; conn.close()
     return jsonify({"success": True}), 201
 
 if __name__ == '__main__':

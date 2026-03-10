@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -20,7 +21,7 @@ def get_db_connection():
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "ok", "service": "backend"})
+    return jsonify({"status": "ok", "database": "connected", "timestamp": datetime.now().isoformat()})
 
 @app.route('/logs', methods=['GET'])
 def get_logs():
@@ -48,11 +49,8 @@ def add_log():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute('INSERT INTO logs (level, message, service) VALUES (%s, %s, %s)',
-                (data['level'], data['message'], data['service']))
+                (data.get('level', 'info'), data.get('message', ''), data.get('service', 'unknown')))
     conn.commit()
     cur.close()
     conn.close()
     return jsonify({"success": True}), 201
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)

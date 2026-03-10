@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: 1. Setup & Install
+      - name: 1. Setup Python & Dependencies
         run: |
           cd backend
           pip install -r requirements.txt
@@ -35,17 +35,18 @@ jobs:
       
       - name: 4. Build & Push to Docker Hub
         run: |
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_TOKEN }}
+          echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           docker build -t hichemmlh/logmein-backend:latest ./backend
           docker build -t hichemmlh/logmein-frontend:latest ./frontend
           docker push hichemmlh/logmein-backend:latest
           docker push hichemmlh/logmein-frontend:latest
 
-      - name: 5. Remote Deploy to AWS
+      - name: 5. Remote Deploy to AWS Swarm
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             docker stack deploy -c docker-compose.prod.yml logmein
